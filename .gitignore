@@ -24,3 +24,8 @@ home_visit-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# SQLite databases
+home_visit_*.db
+home_visit_*.db-shm
+home_visit_*.db-wal
