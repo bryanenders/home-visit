@@ -2,9 +2,11 @@ defmodule HomeVisit.Api do
   @moduledoc """
   The API of the HomeVisit application.
   """
+  @type email :: binary
   @type params :: %{optional(atom) => term}
 
   @required_user_fields [:first_name, :last_name, :email]
+  @required_visit_fields [:date, :minutes, :tasks]
 
   @doc """
   Registers a new user with the given `params`.
@@ -33,5 +35,31 @@ defmodule HomeVisit.Api do
            |> Ecto.Changeset.unique_constraint(:email)
            |> __MODULE__.Repo.insert(),
          do: :ok
+  end
+
+  @doc """
+  Issues a member request for a visit with the given `params`.
+
+  If member with the given `email` is found and `params` are valid, then `:ok`
+  is returned.  If the member cannot be found, `{:error, :member_not_found}` is
+  returned.  If `params` are invalid, field errors are returned in the shape of
+  `{:error, changeset}`.
+  """
+  @spec request_visit(email, params) :: :ok | {:error, :member_not_found | Ecto.Changeset.t()}
+  def request_visit(email, params) when is_binary(email) and is_map(params) do
+    case __MODULE__.Repo.get_by(__MODULE__.User, email: email) do
+      nil ->
+        {:error, :member_not_found}
+
+      member ->
+        requested_at = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
+
+        with {:ok, _} <-
+               %__MODULE__.Visit{member_id: member.id, requested_at: requested_at}
+               |> Ecto.Changeset.cast(params, @required_visit_fields)
+               |> Ecto.Changeset.validate_required(@required_visit_fields)
+               |> __MODULE__.Repo.insert(),
+             do: :ok
+    end
   end
 end
