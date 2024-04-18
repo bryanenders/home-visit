@@ -1,6 +1,6 @@
 import Config
 
-config :home_visit, HomeVisit.Repo,
+config :home_visit, HomeVisit.Api.Repo,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10

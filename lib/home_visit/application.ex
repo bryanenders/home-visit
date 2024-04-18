@@ -2,12 +2,12 @@ defmodule HomeVisit.Application do
   @moduledoc false
   use Application
 
-  alias HomeVisit.Repo
+  alias HomeVisit.Api
 
   @impl true
   def start(_type, _args) do
     children = [
-      Repo
+      Api.Repo
     ]
 
     opts = [

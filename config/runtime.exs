@@ -8,7 +8,7 @@ if config_env() === :prod do
       For example: /data/name/name.db
       """
 
-  config :home_visit, HomeVisit.Repo,
+  config :home_visit, HomeVisit.Api.Repo,
     database: database_path,
     pool_size:
       "POOL_SIZE"
