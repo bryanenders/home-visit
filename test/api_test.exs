@@ -109,9 +109,10 @@ defmodule HomeVisit.ApiTest do
     end
 
     test "requests the visit" do
-      assert :ok = Api.request_visit(@member_email, @valid_params)
+      assert {:ok, visit_id} = Api.request_visit(@member_email, @valid_params)
 
       assert [visit] = visits()
+      assert visit_id === visit.id
       assert @valid_params.date === visit.date
       assert @valid_params.minutes === visit.minutes
       assert @valid_params.tasks === visit.tasks
@@ -127,7 +128,7 @@ defmodule HomeVisit.ApiTest do
 
       params = Map.merge(@valid_params, extraneous_params)
 
-      :ok = Api.request_visit(@member_email, params)
+      {:ok, _} = Api.request_visit(@member_email, params)
 
       assert [visit] = visits()
       assert 1 >= NaiveDateTime.diff(NaiveDateTime.utc_now(), visit.requested_at)

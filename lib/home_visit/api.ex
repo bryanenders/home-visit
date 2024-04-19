@@ -4,6 +4,7 @@ defmodule HomeVisit.Api do
   """
   @type email :: binary
   @type params :: %{optional(atom) => term}
+  @type visit_id :: pos_integer
 
   @required_user_fields [:first_name, :last_name, :email]
   @required_visit_fields [:date, :minutes, :tasks]
@@ -40,12 +41,13 @@ defmodule HomeVisit.Api do
   @doc """
   Issues a member request for a visit with the given `params`.
 
-  If member with the given `email` is found and `params` are valid, then `:ok`
-  is returned.  If the member cannot be found, `{:error, :member_not_found}` is
-  returned.  If `params` are invalid, field errors are returned in the shape of
-  `{:error, changeset}`.
+  If member with the given `email` is found and `params` are valid, then a
+  unique visit ID is returned in the shape of `{:ok, id}`.  If the member
+  cannot be found, `{:error, :member_not_found}` is returned.  If `params` are
+  invalid, field errors are returned in the shape of `{:error, changeset}`.
   """
-  @spec request_visit(email, params) :: :ok | {:error, :member_not_found | Ecto.Changeset.t()}
+  @spec request_visit(email, params) ::
+          {:ok, visit_id} | {:error, :member_not_found | Ecto.Changeset.t()}
   def request_visit(email, params) when is_binary(email) and is_map(params) do
     case __MODULE__.Repo.get_by(__MODULE__.User, email: email) do
       nil ->
@@ -54,12 +56,12 @@ defmodule HomeVisit.Api do
       member ->
         requested_at = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
 
-        with {:ok, _} <-
+        with {:ok, %{id: visit_id}} <-
                %__MODULE__.Visit{member_id: member.id, requested_at: requested_at}
                |> Ecto.Changeset.cast(params, @required_visit_fields)
                |> Ecto.Changeset.validate_required(@required_visit_fields)
                |> __MODULE__.Repo.insert(),
-             do: :ok
+             do: {:ok, visit_id}
     end
   end
 end
