@@ -1,21 +1,33 @@
 # HomeVisit
 
-**TODO: Add description**
+## Testing
 
-## Installation
+1. Download application dependencies with `$ mix deps.get`.
+2. Prepare the database with `$ MIX_ENV=test mix ecto.migrate`.
+3. Run the test suite with `$ mix test`.
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `home_visit` to your list of dependencies in `mix.exs`:
+## Accessing the REPL
 
-```elixir
-def deps do
-  [
-    {:home_visit, "~> 0.1.0"}
-  ]
-end
-```
+### Development Environment
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/home_visit>.
+1. Download application dependencies with `$ mix deps.get`.
+2. Migrate the database with `$ mix ecto.migrate`.
+3. Access the REPL with `$ iex -S mix`.
 
+### Production Environment
+
+1. Download application dependencies with `$ mix deps.get`.
+2. Build production release with `$ MIX_ENV=prod mix release`.
+3. Migrate the database with `$ _build/prod/rel/home_visit/bin/home_visit eval "HomeVisit.Release.migrate"` with `DATABASE_PATH` set.
+4. Start the application with `$ _build/prod/rel/home_visit/bin/home_visit start` with `DATABASE_PATH` set.
+5. Access the REPL with `$ _build/prod/rel/home_visit/bin/home_visit remote` in another terminal session.
+
+## Exercising the API
+
+**TODO: Add instructions**
+
+## Assumptions
+
+* A user can only register one account per email address
+* Tasks can be represented with a string
+* Preventing a user from fulfilling their own visit is out of scope
