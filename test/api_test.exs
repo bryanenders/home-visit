@@ -14,7 +14,8 @@ defmodule HomeVisit.ApiTest do
     @valid_params %{
       first_name: "fake first name",
       last_name: "fake last name",
-      email: "fake@example.com"
+      email: "fake@example.com",
+      balance: 50
     }
 
     test "registers the user" do
@@ -24,6 +25,7 @@ defmodule HomeVisit.ApiTest do
       assert @valid_params.first_name === user.first_name
       assert @valid_params.last_name === user.last_name
       assert @valid_params.email === user.email
+      assert @valid_params.balance === user.balance
       assert 1 >= NaiveDateTime.diff(NaiveDateTime.utc_now(), user.registered_at)
     end
 
@@ -39,6 +41,15 @@ defmodule HomeVisit.ApiTest do
 
       assert [user] = users()
       assert 1 >= NaiveDateTime.diff(NaiveDateTime.utc_now(), user.registered_at)
+    end
+
+    test "with a default balance" do
+      params = Map.delete(@valid_params, :balance)
+
+      :ok = Api.register_user(params)
+
+      assert [user] = users()
+      assert 0 === user.balance
     end
 
     test "without first name" do
@@ -75,6 +86,24 @@ defmodule HomeVisit.ApiTest do
 
         assert [] = users()
       end
+    end
+
+    test "with a nil balance" do
+      params = Map.put(@valid_params, :balance, nil)
+
+      assert {:error, changeset} = Api.register_user(params)
+      assert "can't be blank" in errors_on(changeset).balance
+
+      assert [] = users()
+    end
+
+    test "with a negative balance" do
+      params = Map.put(@valid_params, :balance, -1)
+
+      assert {:error, changeset} = Api.register_user(params)
+      assert "can't be negative" in errors_on(changeset).balance
+
+      assert [] = users()
     end
 
     test "with an email that is already registered" do

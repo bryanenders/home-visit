@@ -7,6 +7,8 @@ defmodule HomeVisit.Api.User do
     * `:first_name` - the first name of the user
     * `:last_name` - the last name of the user
     * `:email` - the email of the user
+    * `:balance` - the number of minutes which are currently available for
+      requesting visits
     * `:registered_at` - the datetime when the user was registered
     * `:id` - the primary key of the user in the database
     * `:inserted_at` - the datetime when the user was inserted into the
@@ -19,6 +21,7 @@ defmodule HomeVisit.Api.User do
   use Ecto.Schema
 
   @type t :: %__MODULE__{
+          balance: non_neg_integer,
           registered_at: NaiveDateTime.t()
         }
 
@@ -26,6 +29,7 @@ defmodule HomeVisit.Api.User do
     field :first_name
     field :last_name
     field :email
+    field :balance, :integer, default: 0
     field :registered_at, :naive_datetime
 
     timestamps()

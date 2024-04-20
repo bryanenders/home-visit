@@ -31,3 +31,5 @@
 * A user can only register one account per email address
 * Tasks can be represented with a string
 * Preventing a user from fulfilling their own visit is out of scope
+* Balance cannot be negative
+* 0 is the default starting balance of a user
