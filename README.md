@@ -33,3 +33,4 @@
 * Preventing a user from fulfilling their own visit is out of scope
 * Balance cannot be negative
 * 0 is the default starting balance of a user
+* Visits will take at least 1 minute

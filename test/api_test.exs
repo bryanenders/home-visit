@@ -205,11 +205,27 @@ defmodule HomeVisit.ApiTest do
         assert [] = visits()
       end
     end
+
+    test "with minutes param below 1" do
+      params = Map.put(@valid_params, :minutes, 0)
+
+      assert {:error, changeset} = Api.request_visit(@member_email, params)
+      assert "must be greater than 0" in errors_on(changeset).minutes
+
+      assert [] = visits()
+    end
   end
 
   @spec errors_on(Ecto.Changeset.t()) :: %{optional(atom) => [String.t(), ...]}
   defp errors_on(%Ecto.Changeset{} = changeset),
-    do: Ecto.Changeset.traverse_errors(changeset, fn {message, _} -> message end)
+    do:
+      Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
+        Regex.replace(~r"%{(\w+)}", message, fn _, key ->
+          opts
+          |> Keyword.get(String.to_existing_atom(key), key)
+          |> to_string()
+        end)
+      end)
 
   @spec users :: [Api.User.t()]
   defp users,

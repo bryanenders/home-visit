@@ -64,6 +64,7 @@ defmodule HomeVisit.Api do
                %__MODULE__.Visit{member_id: member.id, requested_at: requested_at}
                |> Ecto.Changeset.cast(params, @required_visit_fields)
                |> Ecto.Changeset.validate_required(@required_visit_fields)
+               |> Ecto.Changeset.validate_number(:minutes, greater_than: 0)
                |> __MODULE__.Repo.insert(),
              do: {:ok, visit_id}
     end
