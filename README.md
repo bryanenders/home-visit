@@ -34,3 +34,8 @@
 * Balance cannot be negative
 * 0 is the default starting balance of a user
 * Visits will take at least 1 minute
+* Accepting a visit, to prevent multiple pals visiting for a single request, is out of scope
+* Limiting visit fulfillment to once per visit is out of scope
+* SQLite locks the whole database during a transaction which prevents a race condition while updating user balances
+* Balances are stored and computed as integers representing a whole minute
+* When debiting a pal it’s preferable to round up

@@ -20,8 +20,9 @@ defmodule HomeVisit.Api.User do
   """
   use Ecto.Schema
 
+  @type balance :: non_neg_integer
   @type t :: %__MODULE__{
-          balance: non_neg_integer,
+          balance: balance,
           registered_at: NaiveDateTime.t()
         }
 

@@ -10,6 +10,82 @@ defmodule HomeVisit.Api do
   @required_visit_fields [:date, :minutes, :tasks]
 
   @doc """
+  Fulfills a visit request with the given `id` on behalf of a pal.
+
+  If pal with the given `email` and visit with the given `id` are found, then
+  `:ok` is returned.  If the pal cannot be found, `{:error, :pal_not_found}` is
+  returned.  If the visit cannot be found, `{:error, :visit_not_found}` is
+  returned.
+  """
+  @spec fulfill_visit(email, visit_id) :: :ok | {:error, :pal_not_found | :visit_not_found}
+  def fulfill_visit(email, id) when is_binary(email) and is_integer(id) and id > 0 do
+    with {:ok, pal} <- fetch_pal(email),
+         {:ok, visit} <- fetch_visit(id),
+         {:ok, _transaction} <-
+           __MODULE__.Repo.transaction(fn ->
+             debit_visit_member(visit)
+             credit_pal_for_visit(pal, visit)
+             create_transaction(pal, visit)
+           end),
+         do: :ok
+  end
+
+  @spec credit_pal_for_visit(__MODULE__.User.t(), __MODULE__.Visit.t()) :: :ok
+  defp credit_pal_for_visit(%__MODULE__.User{} = pal, %__MODULE__.Visit{} = visit) do
+    credit =
+      (visit.minutes * 0.85)
+      |> ceil()
+      |> trunc()
+
+    pal = __MODULE__.Repo.reload(pal)
+
+    pal
+    |> Ecto.Changeset.change(balance: pal.balance + credit)
+    |> __MODULE__.Repo.update!()
+
+    :ok
+  end
+
+  @spec debit_visit_member(__MODULE__.Visit.t()) :: :ok
+  defp debit_visit_member(%__MODULE__.Visit{} = visit) do
+    member = __MODULE__.Repo.get!(__MODULE__.User, visit.member_id)
+
+    member
+    |> Ecto.Changeset.change(balance: member.balance - visit.minutes)
+    |> __MODULE__.Repo.update!()
+
+    :ok
+  end
+
+  @spec create_transaction(__MODULE__.User.t(), __MODULE__.Visit.t()) ::
+          __MODULE__.Transaction.t()
+  defp create_transaction(%__MODULE__.User{id: pal_id}, %__MODULE__.Visit{id: visit_id}),
+    do:
+      __MODULE__.Repo.insert!(%__MODULE__.Transaction{
+        pal_id: pal_id,
+        visit_id: visit_id,
+        fulfilled_at: now()
+      })
+
+  @spec fetch_pal(email) :: {:ok, __MODULE__.User.t()} | {:error, :pal_not_found}
+  defp fetch_pal(email) when is_binary(email) do
+    if pal = __MODULE__.Repo.get_by(__MODULE__.User, email: email) do
+      {:ok, pal}
+    else
+      {:error, :pal_not_found}
+    end
+  end
+
+  @spec fetch_visit(visit_id) :: {:ok, __MODULE__.Visit.t()} | {:error, :visit_not_found}
+  defp fetch_visit(id) when is_integer(id) and id > 0 do
+    if visit = __MODULE__.Repo.get(__MODULE__.Visit, id) do
+      {:ok, visit}
+    else
+      {:error, :visit_not_found}
+    end
+  end
+
+  @doc """
   Registers a new user with the given `params`.
 
   If `params` are valid, then `:ok` is returned.  Otherwise, field errors are
@@ -27,10 +103,8 @@ defmodule HomeVisit.Api do
   """
   @spec register_user(params) :: :ok | {:error, Ecto.Changeset.t()}
   def register_user(params) when is_map(params) do
-    registered_at = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
-
     with {:ok, _} <-
-           %__MODULE__.User{registered_at: registered_at}
+           %__MODULE__.User{registered_at: now()}
            |> Ecto.Changeset.cast(params, @required_user_fields)
            |> Ecto.Changeset.validate_required(@required_user_fields)
            |> Ecto.Changeset.validate_number(:balance,
@@ -58,10 +132,8 @@ defmodule HomeVisit.Api do
         {:error, :member_not_found}
 
       member ->
-        requested_at = NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
-
         with {:ok, %{id: visit_id}} <-
-               %__MODULE__.Visit{member_id: member.id, requested_at: requested_at}
+               %__MODULE__.Visit{member_id: member.id, requested_at: now()}
                |> Ecto.Changeset.cast(params, @required_visit_fields)
                |> Ecto.Changeset.validate_required(@required_visit_fields)
                |> Ecto.Changeset.validate_number(:minutes, greater_than: 0)
@@ -69,4 +141,10 @@ defmodule HomeVisit.Api do
              do: {:ok, visit_id}
     end
   end
+
+  ## Helpers
+
+  @spec now :: NaiveDateTime.t()
+  defp now,
+    do: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
 end

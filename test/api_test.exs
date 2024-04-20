@@ -2,6 +2,9 @@ defmodule HomeVisit.ApiTest do
   use ExUnit.Case, async: false
 
   alias HomeVisit.Api
+  import Ecto.Query, only: [from: 2]
+
+  @member_email "member@example.com"
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Api.Repo)
@@ -9,6 +12,60 @@ defmodule HomeVisit.ApiTest do
   end
 
   doctest Api
+
+  describe "fulfill_visit/2" do
+    @pal_email "pal@example.com"
+    @member_balance_and_visit_minutes 20
+
+    setup do
+      :ok = register_user(@member_email, @member_balance_and_visit_minutes)
+      :ok = register_user(@pal_email, 0)
+      %{visit_id: request_visit(@member_balance_and_visit_minutes)}
+    end
+
+    test "records the transaction", %{visit_id: visit_id} do
+      assert :ok === Api.fulfill_visit(@pal_email, visit_id)
+
+      assert [transaction] = transactions()
+      assert @pal_email === transaction.pal.email
+      assert visit_id === transaction.visit_id
+      assert visit_id === transaction.visit.id
+      assert 1 >= NaiveDateTime.diff(NaiveDateTime.utc_now(), transaction.fulfilled_at)
+    end
+
+    test "debits the member at 100%", %{visit_id: visit_id} do
+      :ok = Api.fulfill_visit(@pal_email, visit_id)
+
+      assert 0 === balance(@member_email)
+    end
+
+    test "credits the pal at 85%", %{visit_id: visit_id} do
+      :ok = Api.fulfill_visit(@pal_email, visit_id)
+
+      assert ceil(@member_balance_and_visit_minutes * 0.85) == balance(@pal_email)
+    end
+
+    test "rounds up the amount credited to the pal" do
+      minutes = 6
+      visit_id = request_visit(minutes)
+
+      :ok = Api.fulfill_visit(@pal_email, visit_id)
+
+      assert 6 === balance(@pal_email)
+    end
+
+    test "with an unregistered pal email", %{visit_id: visit_id} do
+      assert {:error, :pal_not_found} === Api.fulfill_visit("unregistered@example.com", visit_id)
+
+      assert [] = transactions()
+    end
+
+    test "with an unknown visit ID" do
+      assert {:error, :visit_not_found} === Api.fulfill_visit(@pal_email, 123)
+
+      assert [] = transactions()
+    end
+  end
 
   describe "register_user/1" do
     @valid_params %{
@@ -121,7 +178,6 @@ defmodule HomeVisit.ApiTest do
   end
 
   describe "request_visit/2" do
-    @member_email "member@example.com"
     @valid_params %{
       date: ~D[2063-04-05],
       minutes: 60,
@@ -129,12 +185,7 @@ defmodule HomeVisit.ApiTest do
     }
 
     setup do
-      :ok =
-        Api.register_user(%{
-          first_name: "fake first name",
-          last_name: "fake last name",
-          email: @member_email
-        })
+      :ok = register_user(@member_email, 0)
     end
 
     test "requests the visit" do
@@ -216,6 +267,10 @@ defmodule HomeVisit.ApiTest do
     end
   end
 
+  @spec balance(Api.email()) :: Api.User.balance()
+  defp balance(email) when is_binary(email),
+    do: Api.Repo.one!(from u in "users", where: u.email == ^email, select: u.balance)
+
   @spec errors_on(Ecto.Changeset.t()) :: %{optional(atom) => [String.t(), ...]}
   defp errors_on(%Ecto.Changeset{} = changeset),
     do:
@@ -226,6 +281,37 @@ defmodule HomeVisit.ApiTest do
           |> to_string()
         end)
       end)
+
+  @spec register_user(Api.email(), Api.User.balance()) :: :ok
+  defp register_user(email, balance)
+       when is_binary(email) and is_integer(balance) and balance >= 0 do
+    :ok =
+      Api.register_user(%{
+        first_name: "Fakie",
+        last_name: "Fakerson",
+        email: email,
+        balance: balance
+      })
+  end
+
+  @spec request_visit(integer) :: Api.visit_id()
+  defp request_visit(minutes) when is_integer(minutes) do
+    {:ok, visit_id} =
+      Api.request_visit(@member_email, %{
+        date: ~D[1970-01-01],
+        minutes: minutes,
+        tasks: "fake tasks"
+      })
+
+    visit_id
+  end
+
+  @spec transactions :: [Api.Transaction.t()]
+  defp transactions,
+    do:
+      Api.Transaction
+      |> Api.Repo.all()
+      |> Api.Repo.preload([:pal, :visit])
 
   @spec users :: [Api.User.t()]
   defp users,
