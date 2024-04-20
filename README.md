@@ -24,7 +24,52 @@
 
 ## Exercising the API
 
-**TODO: Add instructions**
+### Get things ready.
+
+    iex> email1 = "1@example.com"
+    "1@example.com"
+
+    iex> email2 = "2@example.com"
+    "2@example.com"
+
+    iex> alias HomeVisit.Api
+    HomeVisit.Api
+
+### Register users.
+
+    iex> Api.register_user(%{first_name: "User", last_name: "1", email: email1, balance: 100})
+    :ok
+
+    iex> Api.register_user(%{first_name: "User", last_name: "2", email: email2})
+    :ok
+
+### Request visits.
+
+    iex> {:ok, visit_id} = Api.request_visit(email1, %{date: ~D[2024-04-20], minutes: 10, tasks: "Exercise the API"})
+    {:ok, 1}
+
+    iex> Api.request_visit(email2, %{date: ~D[2024-04-20], minutes: 1, tasks: "Use my balance"})
+    {:error,
+     #Ecto.Changeset<
+       action: :insert,
+       changes: %{date: ~D[2024-04-20], minutes: 1, tasks: "Use my balance"},
+       errors: [
+         minutes: {"can't exceed member balance",
+          [validation: :number, kind: :less_than_or_equal_to, number: 0]}
+       ],
+       data: #HomeVisit.Api.Visit<>,
+       valid?: false
+     >}
+
+### Fulfill a visit.
+
+    iex> Api.fulfill_visit(email2, visit_id)
+    :ok
+
+### Re-request the previously declined visit.
+
+    iex> Api.request_visit(email2, %{date: ~D[2024-04-20], minutes: 1, tasks: "Use my balance"})
+    {:ok, 2}
 
 ## Assumptions
 
