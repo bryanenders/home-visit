@@ -178,14 +178,15 @@ defmodule HomeVisit.ApiTest do
   end
 
   describe "request_visit/2" do
+    @member_balance 60
     @valid_params %{
       date: ~D[2063-04-05],
-      minutes: 60,
+      minutes: @member_balance,
       tasks: "make contact"
     }
 
     setup do
-      :ok = register_user(@member_email, 0)
+      :ok = register_user(@member_email, @member_balance)
     end
 
     test "requests the visit" do
@@ -262,6 +263,15 @@ defmodule HomeVisit.ApiTest do
 
       assert {:error, changeset} = Api.request_visit(@member_email, params)
       assert "must be greater than 0" in errors_on(changeset).minutes
+
+      assert [] = visits()
+    end
+
+    test "when the balance of the member cannot cover the visit" do
+      params = Map.put(@valid_params, :minutes, @member_balance + 1)
+
+      assert {:error, changeset} = Api.request_visit(@member_email, params)
+      assert "can't exceed member balance" in errors_on(changeset).minutes
 
       assert [] = visits()
     end

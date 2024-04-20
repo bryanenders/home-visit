@@ -39,3 +39,4 @@
 * SQLite locks the whole database during a transaction which prevents a race condition while updating user balances
 * Balances are stored and computed as integers representing a whole minute
 * When debiting a pal it’s preferable to round up
+* If a member’s account has insufficient minutes to cover a requested visit, this should be denied since it would yield a sub-zero balance

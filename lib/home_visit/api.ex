@@ -127,18 +127,39 @@ defmodule HomeVisit.Api do
   @spec request_visit(email, params) ::
           {:ok, visit_id} | {:error, :member_not_found | Ecto.Changeset.t()}
   def request_visit(email, params) when is_binary(email) and is_map(params) do
-    case __MODULE__.Repo.get_by(__MODULE__.User, email: email) do
-      nil ->
-        {:error, :member_not_found}
+    with {:ok, member} <- fetch_member(email) do
+      __MODULE__.Repo.transaction(fn ->
+        case do_request_visit(member, params) do
+          {:ok, %{id: visit_id}} ->
+            visit_id
 
-      member ->
-        with {:ok, %{id: visit_id}} <-
-               %__MODULE__.Visit{member_id: member.id, requested_at: now()}
-               |> Ecto.Changeset.cast(params, @required_visit_fields)
-               |> Ecto.Changeset.validate_required(@required_visit_fields)
-               |> Ecto.Changeset.validate_number(:minutes, greater_than: 0)
-               |> __MODULE__.Repo.insert(),
-             do: {:ok, visit_id}
+          {:error, %Ecto.Changeset{} = changeset} ->
+            __MODULE__.Repo.rollback(changeset)
+        end
+      end)
+    end
+  end
+
+  @spec do_request_visit(__MODULE__.User.t(), params) ::
+          {:ok, __MODULE__.Visit.t()} | {:error, Ecto.Changeset.t()}
+  defp do_request_visit(%__MODULE__.User{} = member, params) when is_map(params) do
+    %__MODULE__.Visit{member_id: member.id, requested_at: now()}
+    |> Ecto.Changeset.cast(params, @required_visit_fields)
+    |> Ecto.Changeset.validate_required(@required_visit_fields)
+    |> Ecto.Changeset.validate_number(:minutes, greater_than: 0)
+    |> Ecto.Changeset.validate_number(:minutes,
+      less_than_or_equal_to: __MODULE__.Repo.reload(member).balance,
+      message: "can't exceed member balance"
+    )
+    |> __MODULE__.Repo.insert()
+  end
+
+  @spec fetch_member(email) :: {:ok, __MODULE__.User.t()} | {:error, :member_not_found}
+  defp fetch_member(email) when is_binary(email) do
+    if member = __MODULE__.Repo.get_by(__MODULE__.User, email: email) do
+      {:ok, member}
+    else
+      {:error, :member_not_found}
     end
   end
 
