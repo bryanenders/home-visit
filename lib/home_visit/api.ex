@@ -6,8 +6,6 @@ defmodule HomeVisit.Api do
   @type params :: %{optional(atom) => term}
   @type visit_id :: pos_integer
 
-  @required_visit_fields [:date, :minutes, :tasks]
-
   @doc """
   Fulfills a visit request with the given `id` on behalf of a pal.
 
@@ -136,14 +134,10 @@ defmodule HomeVisit.Api do
   @spec do_request_visit(__MODULE__.User.t(), params) ::
           {:ok, __MODULE__.Visit.t()} | {:error, Ecto.Changeset.t()}
   defp do_request_visit(%__MODULE__.User{} = member, params) when is_map(params) do
+    member_balance = __MODULE__.Repo.reload(member).balance
+
     %__MODULE__.Visit{member_id: member.id, requested_at: now()}
-    |> Ecto.Changeset.cast(params, @required_visit_fields)
-    |> Ecto.Changeset.validate_required(@required_visit_fields)
-    |> Ecto.Changeset.validate_number(:minutes, greater_than: 0)
-    |> Ecto.Changeset.validate_number(:minutes,
-      less_than_or_equal_to: __MODULE__.Repo.reload(member).balance,
-      message: "can't exceed member balance"
-    )
+    |> __MODULE__.Visit.changeset(member_balance, params)
     |> __MODULE__.Repo.insert()
   end
 
