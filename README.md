@@ -12,6 +12,13 @@
 2. Prepare the database with `$ MIX_ENV=test mix ecto.migrate`.
 3. Run the test suite with `$ mix test`.
 
+## Static Analysis
+
+1. Download application dependencies with `$ mix deps.get`.
+2. Analyze for:
+    * type errors and unreachable code paths with `$ mix dialyzer`.
+    * refactoring opportunities, complex code fragments, common mistakes, and inconsistencies with `$ mix credo`.
+
 ## Accessing the REPL
 
 ### Development Environment
