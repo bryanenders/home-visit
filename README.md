@@ -1,5 +1,11 @@
 # HomeVisit
 
+## Viewing Documentation
+
+1. Download application dependencies with `$ mix deps.get`.
+2. Generate documentation with `$ mix docs`.
+3. View documentation with `$ open doc/index.html`.
+
 ## Testing
 
 1. Download application dependencies with `$ mix deps.get`.

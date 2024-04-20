@@ -12,6 +12,11 @@ defmodule HomeVisit.MixProject do
     [
       app: :home_visit,
       deps: deps(),
+      docs: [
+        main: "readme",
+        extras: ["README.md"],
+        source_url: "https://github.com/bryanenders/home-visit"
+      ],
       elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() === :prod,
@@ -21,7 +26,8 @@ defmodule HomeVisit.MixProject do
 
   defp deps do
     [
-      {:ecto_sqlite3, "~> 0.15"}
+      {:ecto_sqlite3, "~> 0.15"},
+      {:ex_doc, "~> 0.31", only: :dev, runtime: false}
     ]
   end
 
