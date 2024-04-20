@@ -3,6 +3,7 @@ defmodule HomeVisit.ApiTest do
 
   alias HomeVisit.Api
   import Ecto.Query, only: [from: 2]
+  import HomeVisit.ChangesetHelpers
 
   @member_email "member@example.com"
 
@@ -280,17 +281,6 @@ defmodule HomeVisit.ApiTest do
   @spec balance(Api.email()) :: Api.User.balance()
   defp balance(email) when is_binary(email),
     do: Api.Repo.one!(from u in "users", where: u.email == ^email, select: u.balance)
-
-  @spec errors_on(Ecto.Changeset.t()) :: %{optional(atom) => [String.t(), ...]}
-  defp errors_on(%Ecto.Changeset{} = changeset),
-    do:
-      Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
-        Regex.replace(~r"%{(\w+)}", message, fn _, key ->
-          opts
-          |> Keyword.get(String.to_existing_atom(key), key)
-          |> to_string()
-        end)
-      end)
 
   @spec register_user(Api.email(), Api.User.balance()) :: :ok
   defp register_user(email, balance)

@@ -6,7 +6,6 @@ defmodule HomeVisit.Api do
   @type params :: %{optional(atom) => term}
   @type visit_id :: pos_integer
 
-  @required_user_fields [:first_name, :last_name, :email, :balance]
   @required_visit_fields [:date, :minutes, :tasks]
 
   @doc """
@@ -105,13 +104,7 @@ defmodule HomeVisit.Api do
   def register_user(params) when is_map(params) do
     with {:ok, _} <-
            %__MODULE__.User{registered_at: now()}
-           |> Ecto.Changeset.cast(params, @required_user_fields)
-           |> Ecto.Changeset.validate_required(@required_user_fields)
-           |> Ecto.Changeset.validate_number(:balance,
-             greater_than_or_equal_to: 0,
-             message: "can't be negative"
-           )
-           |> Ecto.Changeset.unique_constraint(:email)
+           |> __MODULE__.User.changeset(params)
            |> __MODULE__.Repo.insert(),
          do: :ok
   end
