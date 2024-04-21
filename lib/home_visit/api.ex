@@ -88,6 +88,14 @@ defmodule HomeVisit.Api do
   If `params` are valid, then `:ok` is returned.  Otherwise, field errors are
   returned in the shape of `{:error, changeset}`.
 
+  ## Parameters
+
+    * `:first_name` - the first name of the user
+    * `:last_name` - the last name of the user
+    * `:email` - the email of the user
+    * `:balance` - the number of minutes which are currently available for
+      requesting visits, defaults to `0`
+
   ## Examples
 
       iex> Api.register_user(%{
@@ -114,6 +122,13 @@ defmodule HomeVisit.Api do
   unique visit ID is returned in the shape of `{:ok, id}`.  If the member
   cannot be found, `{:error, :member_not_found}` is returned.  If `params` are
   invalid, field errors are returned in the shape of `{:error, changeset}`.
+
+  ## Parameters
+
+    * `:date` - the date of the visit
+    * `:minutes` - the duration of the visit, in minutes
+    * `:tasks` - a descriptions of the tasks to be performed during the visit
+
   """
   @spec request_visit(email, params) ::
           {:ok, visit_id} | {:error, :member_not_found | Ecto.Changeset.t()}
